@@ -1,3 +1,6 @@
+# TODO
+  - implement a fast version of Network.HTTP
+
 # ssh:22
 
     SSH-2.0-OpenSSH_5.3p1 Debian-3ubuntu7

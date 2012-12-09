@@ -9,6 +9,7 @@ import Control.Monad
 import Data.Maybe
 import Data.List
 import Data.List.Split
+import Data.List.Utils
 import Network
 import Network.BSD
 import Network.HTTP hiding (port)
@@ -24,7 +25,7 @@ data Record = Record { ip   :: String
    deriving Show
 
 -- | (port, ms, scan)
-scanOpts = [(22, 400, scanSSH)
+scanOpts = [(22, 600, scanSSH)
            ,(80, 800, scanHTTP)]
 
 main :: IO ()
@@ -66,16 +67,29 @@ scanSSH host port = do
 
 scanHTTP :: String -> Int -> IO (Maybe Record)
 scanHTTP host port = do
-    resp <- simpleHTTP (getRequest $ "http://" ++ host ++ ":" ++ show port)
-    return $ either (const Nothing) extractHdrs resp
-  where extractHdrs resp = Just (Record host port $ parseHdrs resp)
-        parseHdrs   resp = map (trim . show) (filterHdrs resp)
-        filterHdrs  resp = filter (\r-> hdrName r `elem` hdrs) (getHeaders resp)
-        hdrs = [HdrServer,
-                HdrCustom "X-Powered-By",
-                HdrCustom "X-Runtime",
-                HdrCustom "X-Version",
-                HdrCustom "X-AspNet-Version"]
+    h <- connectTo host (PortNumber (fromIntegral port))
+    hSetBuffering h NoBuffering
+    hPutStr h "GET / HTTP/1.1\n\
+              \User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/20100101 Firefox/17.0\n\
+              \Host: xk\n\
+              \Accept: */*\n\n"
+    -- lookup only 20 headers
+    resp <- replicateM 20 $ hGetLine h
+    -- parse headers
+    log <- return $ parseHdrs (drop 1 resp)
+    hClose h
+    return $ Just (Record host port log)
+  where parseHdrs (line:resp) | checkHdrs hdrs line  = line:(parseHdrs resp)
+                              | ':' `elem` line      = parseHdrs resp
+                              | otherwise            = []
+        checkHdrs [] _ = False
+        checkHdrs (x:xs) line | startswith x line = True
+                              | otherwise = checkHdrs xs line
+        hdrs = ["Server:"
+               ,"X-Powered-By:"
+               ,"X-Runtime:"
+               ,"X-Version:"
+               ,"X-AspNet-Version:"]
 
 withDefault :: a -> IO a -> IO a
 withDefault def action =
