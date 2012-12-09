@@ -17,7 +17,6 @@ import System.Exit
 import System.IO
 import System.Timeout
 import qualified Data.Text as T
-import Text.Regex.Posix
 
 data Record = Record { ip   :: String
                      , port :: Int
