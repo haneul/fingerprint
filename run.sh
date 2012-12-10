@@ -1,2 +1,3 @@
 #!/bin/bash
-runhaskell run.hs "$@"
+runhaskell run.hs "$@" > /tmp/log &
+disown
