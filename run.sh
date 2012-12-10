@@ -1,2 +1,2 @@
 #!/bin/bash
-runhaskell run.hs
+runhaskell run.hs "$@"

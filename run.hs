@@ -5,6 +5,7 @@ import System.Environment
 import System.Exit
 import System.Cmd
 import System.Locale (defaultTimeLocale)
+import System.Directory
 import Control.Concurrent
 import Control.Monad
 import Control.ThreadPool (threadPoolIO)
@@ -17,14 +18,16 @@ main = do
       _    -> usage
 
 run nr = do
-  (inp, out) <- threadPoolIO nr loop
+  now <- getCurrentTime
+  let dir = formatTime defaultTimeLocale "%F" now
+  createDirectoryIfMissing True dir
+
+  (inp, out) <- threadPoolIO nr $ loop dir
   mapM_ (writeChan inp) ips
   forM_ ips (\_ -> readChan out)
   where ips = [1..255]
-        loop ip = do
-          now <- getCurrentTime
-          let out = formatTime defaultTimeLocale "%F" now
-          system $ "./worker.sh " ++ show ip ++ " " + out
+        loop out ip = do
+          system $ "./worker.sh " ++ show ip ++ " " ++ out
           return ()
   
 usage = do
