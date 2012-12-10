@@ -57,12 +57,12 @@ doScan hosts = do
     forM_ scanOpts $ \(port, ms, scan) ->
       mapM (initScan port ms scan) hosts >>= mapM_ hitCheck
   where
-    initScan port ms scan host = threadWithChannel (withDefault Nothing $ scan host port) ms
+    initScan port ms scan host = forkWithChnl (withDef Nothing $ scan host port) ms
     hitCheck mvar = takeMVar mvar >>= maybe (return ()) printHit
     printHit = logRecord stdout
 
-threadWithChannel :: IO (Maybe Record) -> Int -> IO (MVar (Maybe Record))
-threadWithChannel action ms = do
+forkWithChnl :: IO (Maybe Record) -> Int -> IO (MVar (Maybe Record))
+forkWithChnl action ms = do
     mvar <- newEmptyMVar
     forkIO $ limit (ms*1000) action mvar
     return mvar
@@ -104,7 +104,8 @@ scanHTTP host port = do
     logs <- return $ parseHdrs (drop 1 resp)
     hClose h
     mkRecord host port logs
-  where parseHdrs (line:resp) | checkHdrs hdrs line  = (trim line):(parseHdrs resp)
+  where parseHdrs [] = []
+        parseHdrs (line:resp) | checkHdrs hdrs line  = (trim line):(parseHdrs resp)
                               | ':' `elem` line      = parseHdrs resp
                               | otherwise            = []
         checkHdrs [] _ = False
@@ -116,8 +117,8 @@ scanHTTP host port = do
                ,"X-Version:"
                ,"X-AspNet-Version:"]
 
-withDefault :: a -> IO a -> IO a
-withDefault def action =
+withDef :: a -> IO a -> IO a
+withDef def action =
     handle (\(e::SomeException) -> return def) action
 
 trim :: String -> String
