@@ -14,7 +14,7 @@ import Data.Time (UTCTime, getCurrentTime, formatTime)
 main = do
     args <- getArgs
     case args of
-      [nr, from, to] -> run (read nr) (read from) (read to)
+      [nr, from, to] -> run (read nr::Int) (read from::Int) (read to::Int)
       _              -> usage
 
 run nr from to = do
