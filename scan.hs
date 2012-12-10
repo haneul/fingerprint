@@ -62,15 +62,6 @@ doScan nc host = do
           let action = withDef Nothing (scan host port)
           timeout (ms*1000) action >>= maybe (return Nothing) (return)
   
-forkWithChnl :: IO (Maybe Record) -> Int -> IO (MVar (Maybe Record))
-forkWithChnl action ms = do
-    mvar <- newEmptyMVar
-    forkIO $ limit (ms*1000) action mvar
-    return mvar
-  where limit us action mvar = do
-            timeout us action >>= 
-              maybe (putMVar mvar Nothing) (putMVar mvar)
-              
 scanSSH :: String -> Int -> IO (Maybe Record)
 scanSSH host port = do
     h <- connectTo host (PortNumber (fromIntegral port))

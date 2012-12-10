@@ -14,10 +14,10 @@ import Data.Time (UTCTime, getCurrentTime, formatTime)
 main = do
     args <- getArgs
     case args of
-      [nr] -> run (read nr)
-      _    -> usage
+      [nr, from, to] -> run (read nr) (read from) (read to)
+      _              -> usage
 
-run nr = do
+run nr from to = do
   now <- getCurrentTime
   let dir = formatTime defaultTimeLocale "%F" now
   createDirectoryIfMissing True dir
@@ -25,13 +25,12 @@ run nr = do
   (inp, out) <- threadPoolIO nr $ loop dir
   mapM_ (writeChan inp) ips
   forM_ ips (\_ -> readChan out)
-  where ips = [1..255]
+  where ips = [from..to]
         loop out ip = do
           system $ "./worker.sh " ++ show ip ++ " " ++ out
           return ()
   
 usage = do
-  putStrLn "[usage] #nr"
+  putStrLn "[usage] #nr [ip] [ip]"
+  putStrLn " ex) ./run 5 1 255"
   exitFailure
-  
-  
