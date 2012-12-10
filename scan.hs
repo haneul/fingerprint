@@ -18,7 +18,6 @@ import Network.HTTP hiding (port)
 import System.Environment
 import System.Exit
 import System.IO
-import System.IO.Utils
 import System.Locale (defaultTimeLocale)
 import System.Timeout
 import qualified Data.Text as T
@@ -46,18 +45,19 @@ main :: IO ()
 main = do
     args <- getArgs
     case args of
-      [nc, host] -> withSocketsDo $ doScan host (read nc)
+      [nc, host] -> withSocketsDo $ doScan (read nc) host 
       _          -> usage
 
 usage = do
   putStrLn "[usage] #connections ip"
   exitFailure
 
-doScan host nc = do
+doScan nc host = do
   (inp, out) <- threadPoolIO nc loop
-  actions <- mapM (writeChan inp) [(port, ms, scan, h)| (port, ms, scan) <- scanOpts, h <- parseHost host]
-  forM_ actions (\_ -> readChan out >>= check)
-  where check rtn = maybe (return ()) (logRecord stdout) rtn
+  mapM_ (writeChan inp) works
+  forM_ works (\_ -> readChan out >>= check)
+  where works = [(port, ms, scan, h)| (port, ms, scan) <- scanOpts, h <- parseHost host]
+        check = maybe (return ()) (logRecord stdout)
         loop (port, ms, scan, host) = do
           let action = withDef Nothing (scan host port)
           timeout (ms*1000) action >>= maybe (return Nothing) (return)
