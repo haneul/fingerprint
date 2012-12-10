@@ -45,17 +45,17 @@ main :: IO ()
 main = do
     args <- getArgs
     case args of
-      [host] -> withSocketsDo $ doScan (parseHost host)
+      [host] -> withSocketsDo $ doScan host
       _      -> usage
 
 usage = do
   putStrLn "[usage] ip"
   exitFailure
   
-doScan :: [String] -> IO ()
-doScan hosts = do
+doScan :: String -> IO ()
+doScan host = do
     forM_ scanOpts $ \(port, ms, scan) ->
-      mapM (initScan port ms scan) hosts >>= mapM_ hitCheck
+      mapM (initScan port ms scan) (parseHost host) >>= mapM_ hitCheck
   where
     initScan port ms scan host = forkWithChnl (withDef Nothing $ scan host port) ms
     hitCheck mvar = takeMVar mvar >>= maybe (return ()) printHit
@@ -98,7 +98,7 @@ scanHTTP host port = do
                 \User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/20100101 Firefox/17.0\r\n\
                 \Host: " ++ host ++ "\r\n\
                 \Accept: */*\r\n\r\n"
-    -- lookup only 20 headers
+    -- lookup only 20 lines at maximum
     resp <- getLines 20 h
     -- parse headers
     logs <- return $ parseHdrs (drop 1 resp)
