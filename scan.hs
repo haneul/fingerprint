@@ -10,6 +10,7 @@ import Data.Maybe
 import Data.List
 import Data.List.Split
 import Data.List.Utils
+import Data.Time (UTCTime, getCurrentTime, formatTime)
 import Network
 import Network.BSD
 import Network.HTTP hiding (port)
@@ -17,13 +18,24 @@ import System.Environment
 import System.Exit
 import System.IO
 import System.IO.Utils
+import System.Locale (defaultTimeLocale)
 import System.Timeout
 import qualified Data.Text as T
+import Text.Printf
 
-data Record = Record { ip   :: String
+data Record = Record { time :: UTCTime
+                     , ip   :: String
                      , port :: Int
-                     , log  :: [String] }
-   deriving Show
+                     , logs :: [String] }
+    deriving Show
+
+mkRecord ip port logs = do
+    now <- getCurrentTime
+    return $ Just (Record now ip port logs)
+
+logRecord h (Record time ip port logs) =
+    hPrintf h "%s %-15s %-3d %s\n" fmt ip port (intercalate "," $ logs)
+  where fmt = formatTime defaultTimeLocale "%F %T" time
 
 -- | (port, ms, scan)
 scanOpts = [(22, 3000, scanSSH)
@@ -47,7 +59,7 @@ doScan hosts = do
   where
     initScan port ms scan host = threadWithChannel (withDefault Nothing $ scan host port) ms
     hitCheck mvar = takeMVar mvar >>= maybe (return ()) printHit
-    printHit = putStrLn . show
+    printHit = logRecord stdout
 
 threadWithChannel :: IO (Maybe Record) -> Int -> IO (MVar (Maybe Record))
 threadWithChannel action ms = do
@@ -64,7 +76,7 @@ scanSSH host port = do
     hSetBuffering h NoBuffering
     log <- trim <$> hGetLine h
     hClose h
-    return $ Just (Record host port [log])
+    mkRecord host port [log]
 
 getLines :: Int -> Handle -> IO [String]
 getLines 0 h = return $ []
@@ -89,9 +101,9 @@ scanHTTP host port = do
     -- lookup only 20 headers
     resp <- getLines 20 h
     -- parse headers
-    log <- return $ parseHdrs (drop 1 resp)
+    logs <- return $ parseHdrs (drop 1 resp)
     hClose h
-    return $ Just (Record host port log)
+    mkRecord host port logs
   where parseHdrs (line:resp) | checkHdrs hdrs line  = (trim line):(parseHdrs resp)
                               | ':' `elem` line      = parseHdrs resp
                               | otherwise            = []

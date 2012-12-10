@@ -11,5 +11,7 @@ executable              scan
                       , split
                       , text
                       , MissingH
+                      , old-locale
+                      , time
 
     ghc-options:       -O2
