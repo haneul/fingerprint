@@ -1,5 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-
+{-# LANGUAGE BangPatterns #-}
 module Main (main) where
 
 import Control.Concurrent
@@ -16,6 +16,7 @@ import Network.HTTP hiding (port)
 import System.Environment
 import System.Exit
 import System.IO
+import System.IO.Utils
 import System.Timeout
 import qualified Data.Text as T
 
@@ -25,8 +26,8 @@ data Record = Record { ip   :: String
    deriving Show
 
 -- | (port, ms, scan)
-scanOpts = [(22, 600, scanSSH)
-           ,(80, 800, scanHTTP)]
+scanOpts = [(22, 3000, scanSSH)
+           ,(80, 5000, scanHTTP)]
 
 main :: IO ()
 main = do
@@ -65,21 +66,33 @@ scanSSH host port = do
     hClose h
     return $ Just (Record host port [log])
 
+getLines :: Int -> Handle -> IO [String]
+getLines 0 h = return $ []
+getLines n h = do
+    eof <- hIsEOF h
+    if eof
+      then do
+        return []
+      else do
+        line <- hGetLine h
+        rest <- getLines (n-1) h
+        return $! line:rest
+
 scanHTTP :: String -> Int -> IO (Maybe Record)
 scanHTTP host port = do
     h <- connectTo host (PortNumber (fromIntegral port))
     hSetBuffering h NoBuffering
-    hPutStr h "GET / HTTP/1.1\n\
-              \User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/20100101 Firefox/17.0\n\
-              \Host: xk\n\
-              \Accept: */*\n\n"
+    hPutStr h $ "GET / HTTP/1.1\r\n\
+                \User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/20100101 Firefox/17.0\r\n\
+                \Host: " ++ host ++ "\r\n\
+                \Accept: */*\r\n\r\n"
     -- lookup only 20 headers
-    resp <- replicateM 20 $ hGetLine h
+    resp <- getLines 20 h
     -- parse headers
     log <- return $ parseHdrs (drop 1 resp)
     hClose h
     return $ Just (Record host port log)
-  where parseHdrs (line:resp) | checkHdrs hdrs line  = line:(parseHdrs resp)
+  where parseHdrs (line:resp) | checkHdrs hdrs line  = (trim line):(parseHdrs resp)
                               | ':' `elem` line      = parseHdrs resp
                               | otherwise            = []
         checkHdrs [] _ = False
