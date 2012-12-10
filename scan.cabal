@@ -13,5 +13,6 @@ executable              scan
                       , MissingH
                       , old-locale
                       , time
+                      , Control-Engine
 
     ghc-options:       -O2

@@ -2,6 +2,7 @@
 {-# LANGUAGE BangPatterns #-}
 module Main (main) where
 
+import Control.ThreadPool (threadPoolIO)
 import Control.Concurrent
 import Control.Exception
 import Control.Applicative
@@ -38,29 +39,29 @@ logRecord h (Record time ip port logs) =
   where fmt = formatTime defaultTimeLocale "%F %T" time
 
 -- | (port, ms, scan)
-scanOpts = [(22, 3000, scanSSH)
-           ,(80, 5000, scanHTTP)]
+scanOpts = [(22, 2000, scanSSH)
+           ,(80, 3000, scanHTTP)]
 
 main :: IO ()
 main = do
     args <- getArgs
     case args of
-      [host] -> withSocketsDo $ doScan host
-      _      -> usage
+      [nc, host] -> withSocketsDo $ doScan host (read nc)
+      _          -> usage
 
 usage = do
-  putStrLn "[usage] ip"
+  putStrLn "[usage] #connections ip"
   exitFailure
-  
-doScan :: String -> IO ()
-doScan host = do
-    forM_ scanOpts $ \(port, ms, scan) ->
-      mapM (initScan port ms scan) (parseHost host) >>= mapM_ hitCheck
-  where
-    initScan port ms scan host = forkWithChnl (withDef Nothing $ scan host port) ms
-    hitCheck mvar = takeMVar mvar >>= maybe (return ()) printHit
-    printHit = logRecord stdout
 
+doScan host nc = do
+  (inp, out) <- threadPoolIO nc loop
+  actions <- mapM (writeChan inp) [(port, ms, scan, h)| (port, ms, scan) <- scanOpts, h <- parseHost host]
+  forM_ actions (\_ -> readChan out >>= check)
+  where check rtn = maybe (return ()) (logRecord stdout) rtn
+        loop (port, ms, scan, host) = do
+          let action = withDef Nothing (scan host port)
+          timeout (ms*1000) action >>= maybe (return Nothing) (return)
+  
 forkWithChnl :: IO (Maybe Record) -> Int -> IO (MVar (Maybe Record))
 forkWithChnl action ms = do
     mvar <- newEmptyMVar
