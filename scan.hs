@@ -2,7 +2,6 @@
 {-# LANGUAGE BangPatterns #-}
 module Main (main) where
 
-import Control.ThreadPool (threadPoolIO)
 import Control.Concurrent
 import Control.Exception
 import Control.Applicative
@@ -11,6 +10,7 @@ import Data.Maybe
 import Data.List
 import Data.List.Split
 import Data.List.Utils
+import Data.IP
 import Data.Time (UTCTime, getCurrentTime, formatTime)
 import Network
 import Network.BSD
@@ -38,30 +38,63 @@ logRecord h (Record time ip port logs) =
   where fmt = formatTime defaultTimeLocale "%F %T" time
 
 -- | (port, ms, scan)
-scanOpts = [(22, 2000, scanSSH)
-           ,(80, 3000, scanHTTP)]
+scanOpts = [(22,  600, scanSSH)
+           ,(80, 1000, scanHTTP)]
 
 main :: IO ()
 main = do
     args <- getArgs
     case args of
-      [nc, host] -> withSocketsDo $ doScan (read nc) host 
-      _          -> usage
+      [nc, from, to] -> initScan (read nc) (read from) (read to)
+      _              -> usage
 
+initScan :: Int -> IPv4 -> IPv4 -> IO ()
+initScan nc from to | from <= to = withSocketsDo $ doScan nc from to
+                    | otherwise  = usage               
+
+nextIP :: IPv4 -> IPv4
+nextIP ip = case newIp of
+    [ 10,  _,_,_] -> toIPv4 [11,   0,0,0]
+    [172, 16,_,_] -> toIPv4 [172, 32,0,0]
+    [169,254,_,_] -> toIPv4 [169,255,0,0]
+    [192,168,_,_] -> toIPv4 [192,169,0,0]
+    otherwise     -> toIPv4 newIp
+  where tok   = fromIPv4 ip
+        newIp = reverse . incIP . reverse $ tok
+        incIP []       = []
+        incIP (255:xs) = 0:(incIP xs)
+        incIP (x:xs)   = (x+1):xs
+
+usage :: IO ()
 usage = do
-  putStrLn "[usage] #connections ip"
-  exitFailure
+    putStrLn "[usage] #connections from to"
+    exitFailure
 
-doScan nc host = do
-  (inp, out) <- threadPoolIO nc loop
-  mapM_ (writeChan inp) works
-  forM_ works (\_ -> readChan out >>= check)
-  where works = [(port, ms, scan, h)| (port, ms, scan) <- scanOpts, h <- parseHost host]
-        check = maybe (return ()) (logRecord stdout)
-        loop (port, ms, scan, host) = do
-          let action = withDef Nothing (scan host port)
+doScan :: Int -> IPv4 -> IPv4 -> IO ()
+doScan nc from to = do
+    done  <- newEmptyMVar
+    hosts <- newMVar from
+    forM [1..nc] $ \id -> forkIO (worker id hosts done)
+    forM [1..nc] $ \id -> takeMVar done
+    return ()
+  where worker id hosts done = do
+          host <- takeMVar hosts
+          let next = nextIP host
+          putMVar hosts next
+          if next > to then do
+            putMVar done True
+          else do
+            forM_ scanOpts $ \(port, ms, scan) ->
+              loop port ms scan host >>= check
+            worker id hosts done
+          
+        loop port ms scan host = do
+          let action = withDef Nothing $ scan (show host) port
           timeout (ms*1000) action >>= maybe (return Nothing) (return)
-  
+
+        check Nothing  = return ()
+        check (Just r) = logRecord stdout r
+
 scanSSH :: String -> Int -> IO (Maybe Record)
 scanSSH host port = do
     h <- connectTo host (PortNumber (fromIntegral port))
