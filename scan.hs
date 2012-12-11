@@ -124,7 +124,7 @@ scanHTTP host port = do
                 \User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/20100101 Firefox/17.0\r\n\
                 \Host: " ++ host ++ "\r\n\
                 \Accept: */*\r\n\r\n"
-    -- lookup only 20 lines at maximum
+    -- lookup only 20 lines at most
     resp <- getLines 20 h
     -- parse headers
     logs <- return $ parseHdrs (drop 1 resp)
@@ -149,9 +149,3 @@ withDef def action =
 
 trim :: String -> String
 trim = T.unpack . T.strip . T.pack
-
-parseHost :: String -> [String]
-parseHost host = map (intercalate ".") $ expand (splitOn "." host)
-  where expand [] = [[]]
-        expand (x:xs) | x == "*"  = [x:y| x <- map show [0..255], y <- expand xs]
-                      | otherwise = [x:y| y <- expand xs]
