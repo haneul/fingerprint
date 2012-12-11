@@ -39,8 +39,8 @@ logRecord h (Record time ip port logs) =
   where fmt = formatTime defaultTimeLocale "%F %T" time
 
 -- | (port, ms, scan)
-scanOpts = [(22,  600, scanSSH)
-           ,(80, 1000, scanHTTP)]
+scanOpts = [(22,  600*5, scanSSH)
+           ,(80, 1000*5, scanHTTP)]
 
 main :: IO ()
 main = do
