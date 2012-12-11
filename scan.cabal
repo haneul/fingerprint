@@ -13,5 +13,6 @@ executable              scan
                       , MissingH
                       , old-locale
                       , time
+                      , iproute
 
     ghc-options:       -O2

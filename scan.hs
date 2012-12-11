@@ -1,5 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 module Main (main) where
 
 import Control.Concurrent
