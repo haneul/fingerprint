@@ -55,7 +55,7 @@ initScan nc from to | from <= to = withSocketsDo $ doScan nc from to
 
 nextIP :: IPv4 -> IPv4
 nextIP ip = case newIp of
-    [ 10,  _,_,_] -> toIPv4 [11,   0,0,0]
+    [ 10,  _,_,_] -> toIPv4 [ 11,  0,0,0]
     [172, 16,_,_] -> toIPv4 [172, 32,0,0]
     [169,254,_,_] -> toIPv4 [169,255,0,0]
     [192,168,_,_] -> toIPv4 [192,169,0,0]
