@@ -14,5 +14,6 @@ executable              scan
                       , old-locale
                       , time
                       , iproute
+                      , regex-posix
 
     ghc-options:       -O2

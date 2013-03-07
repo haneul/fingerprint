@@ -23,6 +23,7 @@ import System.Locale (defaultTimeLocale)
 import System.Timeout
 import qualified Data.Text as T
 import Text.Printf
+import Text.Regex.Posix
 
 data Record = Record { time :: UTCTime
                      , ip   :: String
@@ -41,6 +42,7 @@ logRecord h (Record time ip port logs) =
 -- | (port, ms, scan)
 scanOpts = [(22,  600*5, scanSSH)
            ,(80, 1000*5, scanHTTP)]
+           -- ,(80, 1000*5, scanWPReadme)
 
 main :: IO ()
 main = do
@@ -116,14 +118,27 @@ getLines n h = do
         rest <- getLines (n-1) h
         return $! line:rest
 
-scanHTTP :: String -> Int -> IO (Maybe Record)
-scanHTTP host port = do
+httpGet url host port = do
     h <- connectTo host (PortNumber (fromIntegral port))
     hSetBuffering h NoBuffering
-    hPutStr h $ "GET / HTTP/1.1\r\n\
+    hPutStr h $ "GET " ++ url ++ " HTTP/1.1\r\n\
                 \User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/20100101 Firefox/17.0\r\n\
                 \Host: " ++ host ++ "\r\n\
                 \Accept: */*\r\n\r\n"
+    return h
+
+scanWPReadme :: String -> Int -> IO (Maybe Record)
+scanWPReadme host port = do
+    h <- httpGet "/readme.html" host port
+    resp <- hGetContents h
+    hClose h
+    case resp =~~ "Version ([0-9]+.[0-9]+.[0-9]+)" :: Maybe String of
+      Just ver -> mkRecord host port [ver]
+      Nothing -> return Nothing
+
+scanHTTP :: String -> Int -> IO (Maybe Record)
+scanHTTP host port = do
+    h <- httpGet "/" host port
     -- lookup only 20 lines at most
     resp <- getLines 20 h
     -- parse headers
