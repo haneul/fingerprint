@@ -11,6 +11,7 @@ import Data.Maybe
 import Data.List
 import Data.List.Split
 import Data.List.Utils
+import Data.Functor ((<$>))
 import Data.IP
 import Data.Time (UTCTime, getCurrentTime, formatTime)
 import Network
@@ -44,16 +45,20 @@ scanOpts = [(22,  600*5, scanSSH)
            ,(80, 1000*5, scanHTTP)]
            -- ,(80, 1000*5, scanWPReadme)
 
+toBlacklist :: String -> [AddrRange IPv4]
+toBlacklist list = map read (lines list)
+
 main :: IO ()
 main = do
+    blacklist <- toBlacklist <$> readFile "blacklist"
     args <- getArgs
     case args of
-      [nc, from, to] -> initScan (read nc) (read from) (read to)
+      [nc, from, to] -> initScan blacklist (read nc) (read from) (read to)
       _              -> usage
 
-initScan :: Int -> IPv4 -> IPv4 -> IO ()
-initScan nc from to | from <= to = withSocketsDo $ doScan nc from to
-                    | otherwise  = usage               
+initScan :: [AddrRange IPv4] -> Int -> IPv4 -> IPv4 -> IO ()
+initScan bl nc from to | from <= to = withSocketsDo $ doScan bl nc from to
+                       | otherwise  = usage               
 
 nextIP :: IPv4 -> IPv4
 nextIP ip = case newIp of
@@ -68,13 +73,21 @@ nextIP ip = case newIp of
         incIP (255:xs) = 0:(incIP xs)
         incIP (x:xs)   = (x+1):xs
 
+nextScanableIP :: [AddrRange IPv4] -> IPv4 -> IPv4
+nextScanableIP bl ip =
+  if any (isMatchedTo next) bl then
+    nextScanableIP bl next
+  else
+    next
+  where next = nextIP ip
+
 usage :: IO ()
 usage = do
     putStrLn "[usage] #connections from to"
     exitFailure
 
-doScan :: Int -> IPv4 -> IPv4 -> IO ()
-doScan nc from to = do
+doScan :: [AddrRange IPv4] -> Int -> IPv4 -> IPv4 -> IO ()
+doScan bl nc from to = do
     done  <- newEmptyMVar
     hosts <- newMVar from
     forM [1..nc] $ \id -> forkIO (worker id hosts done)
@@ -82,7 +95,7 @@ doScan nc from to = do
     return ()
   where worker id hosts done = do
           host <- takeMVar hosts
-          let next = nextIP host
+          let next = nextScanableIP bl host
           putMVar hosts next
           if next > to then do
             putMVar done True
