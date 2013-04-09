@@ -5,8 +5,8 @@ if [[ -d haskell ]]; then
   exit 1
 fi
 
-sudo yum install gmp-devel make freeglut-devel
-sudo yum install --nogpgcheck gcc zlib-devel
+sudo yum -y install gmp-devel make freeglut-devel
+sudo yum -y install --nogpgcheck gcc zlib-devel
 
 mkdir -p haskell
 cd haskell
