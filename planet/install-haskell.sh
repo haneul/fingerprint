@@ -15,12 +15,13 @@ wget http://www.haskell.org/ghc/dist/7.4.2/ghc-7.4.2-i386-unknown-linux.tar.bz2
 wget http://lambda.haskell.org/platform/download/2012.4.0.0/haskell-platform-2012.4.0.0.tar.gz
 
 tar zxvf  haskell-platform-2012.4.0.0.tar.gz
-tar zxvfj ghc-7.4.2-i386-unknown-linux.tar.bz2
+tar xvfj ghc-7.4.2-i386-unknown-linux.tar.bz2
 
 {
   cd ghc-7.4.2
   ./configure
   sudo make install
+  cd ..
 }
 
 {
@@ -28,6 +29,7 @@ tar zxvfj ghc-7.4.2-i386-unknown-linux.tar.bz2
   ./configure
   make
   sudo make install
+  cd ..
 }
 
 # wget fingerprint
