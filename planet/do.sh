@@ -35,7 +35,7 @@ ONE=${OUT[0]}
 
 for f in ${OUT[@]}; do
   DIFF=$(diff -urN $ONE $f)
-  printf "%-35s: " $f
+  printf "%-35s: " $(basename $f)
   if [[ -n $DIFF ]]; then
     echo ""
     echo "------"

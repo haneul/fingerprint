@@ -10,6 +10,8 @@ if $OPT_TEST; then
   PCS=( ${PCS[0]} )
 fi
 
+echo "See. $TMP"
+
 if [[ ! -n $1 ]]; then
   echo "[usage] ./$0 [local-script]"
   exit 1
@@ -46,7 +48,7 @@ ONE=${OUT[0]}
 
 for f in ${OUT[@]}; do
   DIFF=$(diff -urN $ONE $f)
-  printf "%-35s: " $f
+  printf "%-35s: " $(basename $f)
   if [[ -n $DIFF ]]; then
     echo ""
     echo "------"
@@ -56,3 +58,5 @@ for f in ${OUT[@]}; do
     echo " OK"
   fi
 done
+
+echo "See. $TMP"
