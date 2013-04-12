@@ -10,8 +10,13 @@ sudo yum -y install --nogpgcheck gcc zlib-devel
 mkdir -p haskell
 cd haskell
 
-wget http://www.haskell.org/ghc/dist/7.4.2/ghc-7.4.2-i386-unknown-linux.tar.bz2
-wget http://lambda.haskell.org/platform/download/2012.4.0.0/haskell-platform-2012.4.0.0.tar.gz
+if [[ ! -e ghc-7.4.2-i386-unknown-linux.tar.bz2 ]]; then
+  wget -q http://www.haskell.org/ghc/dist/7.4.2/ghc-7.4.2-i386-unknown-linux.tar.bz2
+fi
+
+if [[ ! -e haskell-platform-2012.4.0.0.tar.gz ]]; then
+  wget -q http://lambda.haskell.org/platform/download/2012.4.0.0/haskell-platform-2012.4.0.0.tar.gz
+fi
 
 tar zxvf  haskell-platform-2012.4.0.0.tar.gz
 tar xvfj ghc-7.4.2-i386-unknown-linux.tar.bz2

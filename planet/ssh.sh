@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ssh -q \
+ssh -q -t \
   -o UserKnownHostsFile=/dev/null \
   -o ConnectTimeout=3 \
   -o StrictHostKeyChecking=no \

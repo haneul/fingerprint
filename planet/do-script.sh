@@ -28,7 +28,7 @@ for m in ${PCS[@]}; do
   log "Run $@ on $m"
   {
     BUF=$(mktemp)
-    cat $1 | ssh -q \
+    cat $1 | ssh -q -t \
       -o UserKnownHostsFile=/dev/null \
       -o StrictHostKeyChecking=no \
       -o ConnectTimeout=3 \
