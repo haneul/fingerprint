@@ -27,12 +27,15 @@ log() {
 for m in ${PCS[@]}; do
   log "Run $@ on $m"
   {
+    SCR=$(basename $1)
+    URL=http://xk.csail.mit.edu/public/fingerprint/planet
     BUF=$(mktemp)
-    cat $1 | ssh -q -t \
+    ssh -q -t \
       -o UserKnownHostsFile=/dev/null \
       -o StrictHostKeyChecking=no \
       -o ConnectTimeout=3 \
-      -i syhan.pkey -l uw_scanner $m -- sh &> $BUF
+      -i syhan.pkey -l uw_scanner $m \
+      -- "wget -q $URL/$SCR -O /tmp/$SCR -nc; bash /tmp/$SCR" &> $BUF
     mv $BUF $TMP/$m
     log "Done $m"
   } &

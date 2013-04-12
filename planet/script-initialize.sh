@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 if [[ -d haskell ]]; then
   echo "Already installed?"
