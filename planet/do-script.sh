@@ -2,9 +2,10 @@
 
 OPT_TEST=${TEST:-false}
 OPT_VERBOSE=${VERBOSE:-true}
+OPT_MACHINES=${MACHINES:-machines}
 
 TMP=$(mktemp -d)
-PCS=( $(cat machines) )
+PCS=( $(cat $OPT_MACHINES) )
 
 if $OPT_TEST; then
   PCS=( ${PCS[0]} )
@@ -43,20 +44,4 @@ while true; do
   sleep 1
 done
 
-OUT=($TMP/*)
-ONE=${OUT[0]}
-
-for f in ${OUT[@]}; do
-  DIFF=$(diff -urN $ONE $f)
-  printf "%-35s: " $(basename $f)
-  if [[ -n $DIFF ]]; then
-    echo ""
-    echo "------"
-    echo "$DIFF"
-    echo "------"
-  else
-    echo " OK"
-  fi
-done
-
-echo "See. $TMP"
+./check-diff.sh $TMP

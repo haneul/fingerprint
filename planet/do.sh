@@ -1,8 +1,12 @@
 #!/bin/bash
 
+OPT_MACHINES=${MACHINES:-machines}
+
 VER=1
 TMP=$(mktemp -d)
-PCS=( $(cat machines) )
+PCS=( $(cat $OPT_MACHINES) )
+
+echo "See. $TMP"
 
 log() {
   if [[ $VER == 1 ]]; then
@@ -30,18 +34,4 @@ while true; do
   sleep 1
 done
 
-OUT=($TMP/*)
-ONE=${OUT[0]}
-
-for f in ${OUT[@]}; do
-  DIFF=$(diff -urN $ONE $f)
-  printf "%-35s: " $(basename $f)
-  if [[ -n $DIFF ]]; then
-    echo ""
-    echo "------"
-    echo "$DIFF"
-    echo "------"
-  else
-    echo " OK"
-  fi
-done
+./check-diff.sh $TMP
