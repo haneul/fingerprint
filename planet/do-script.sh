@@ -6,7 +6,7 @@ OPT_VERBOSE=${VERBOSE:-true}
 TMP=$(mktemp -d)
 PCS=( $(cat machines) )
 
-if [[ $OPT_TEST ]]; then
+if $OPT_TEST; then
   PCS=( ${PCS[0]} )
 fi
 
@@ -16,7 +16,7 @@ if [[ ! -n $1 ]]; then
 fi
 
 log() {
-  if [[ $OPT_VERBOSE ]]; then
+  if $OPT_VERBOSE; then
     echo "[$(date)] $@"
   fi
 }

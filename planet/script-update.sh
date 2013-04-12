@@ -27,4 +27,9 @@ fi
 
   # check if it runs
   dist/build/scan/scan
+
+  # tools
+  git --help
+  gcc --version
+  python --version
 }

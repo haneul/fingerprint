@@ -1,10 +1,8 @@
 #!/bin/bash
 
-# update
-#  http://xk.csail.mit.edu/public/fingerprint.git/
-#  git clone
-#  git pull
-# build
-#  
-
-echo $HOME
+TOP=$HOME/fingerprint
+{
+  cd $TOP
+  python worker-planet.py &>/dev/null &
+  disown
+}
