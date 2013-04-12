@@ -30,7 +30,7 @@ for m in ${PCS[@]}; do
     SCR=$(basename $1)
     URL=http://xk.csail.mit.edu/public/fingerprint/planet
     BUF=$(mktemp)
-    ssh -q -t \
+    ssh -q -tt \
       -o UserKnownHostsFile=/dev/null \
       -o StrictHostKeyChecking=no \
       -o ConnectTimeout=3 \
