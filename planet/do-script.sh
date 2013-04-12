@@ -1,11 +1,22 @@
 #!/bin/bash
 
-VER=1
+OPT_TEST=${TEST:-false}
+OPT_VERBOSE=${VERBOSE:-true}
+
 TMP=$(mktemp -d)
 PCS=( $(cat machines) )
 
+if [[ $OPT_TEST ]]; then
+  PCS=( ${PCS[0]} )
+fi
+
+if [[ ! -n $1 ]]; then
+  echo "[usage] ./$0 [local-script]"
+  exit 1
+fi
+
 log() {
-  if [[ $VER == 1 ]]; then
+  if [[ $OPT_VERBOSE ]]; then
     echo "[$(date)] $@"
   fi
 }
@@ -14,8 +25,8 @@ for m in ${PCS[@]}; do
   log "Run $@ on $m"
   {
     BUF=$(mktemp)
-    ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-      -i syhan.pkey -l uw_scanner $m $@ &> $BUF
+    cat $1 | ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+      -i syhan.pkey -l uw_scanner $m -- sh &> $BUF
     mv $BUF $TMP/$m
     log "Done $m"
   } &
