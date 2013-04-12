@@ -2,7 +2,6 @@
 
 if [[ -d haskell ]]; then
   echo "Already installed?"
-  exit 1
 fi
 
 sudo yum -y install --nogpgcheck gmp-devel make freeglut-devel

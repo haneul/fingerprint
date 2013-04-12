@@ -28,7 +28,10 @@ for m in ${PCS[@]}; do
   log "Run $@ on $m"
   {
     BUF=$(mktemp)
-    cat $1 | ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+    cat $1 | ssh -q \
+      -o UserKnownHostsFile=/dev/null \
+      -o StrictHostKeyChecking=no \
+      -o ConnectTimeout=3 \
       -i syhan.pkey -l uw_scanner $m -- sh &> $BUF
     mv $BUF $TMP/$m
     log "Done $m"
