@@ -69,10 +69,12 @@ def log(entry):
     mkdirp("out")
     
     e = "[%s] %s" % (time.ctime(), entry)
-    with open(join(TOP, "out/stat"), "w") as fd:
-        fd.write(e)
-    with open(join(TOP, "out/log"), "a+") as fd:
-        fd.write(e + "\n")
+    fd = open(join(TOP, "out/stat"), "w")
+    fd.write(e)
+    fd.close()
+    fd = open(join(TOP, "out/log"), "a+")
+    fd.write(e + "\n")
+    fd.close()
 
 def do_scan(opts):
     me = get_me()
