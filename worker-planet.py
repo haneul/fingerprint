@@ -5,6 +5,7 @@ import sys
 import commands
 import optparse
 import time
+import socket
 
 from os.path import *
 
@@ -77,28 +78,45 @@ def log(entry):
     fd.close()
 
 def do_scan(opts):
-    me = get_me()
     now = time.strftime("%Y%m%d")
     
     mkdirp("out")
+    mkdirp("out/%s" % now)
+    HOST = opts.server_address
+    PORT = opts.server_port
     
     #
     # TOP/out/now/ip-ip
     # TOP/out/log
     # TOP/out/stat
     #
-
-    (from_ip, to_ip) = assigned_ip(me, get_pcs(), opts.testing)
-
-    mkdirp("out/%s" % now)
-    
-    out  = join(TOP, "out/%s/%s-%s" % (now, from_ip, to_ip))
-    scan = join(TOP, "dist/build/scan/scan")
-    
-    log("BEG %s - %s" % (from_ip, to_ip))
-    os.system("%s %s %s %s 2>&1 >> %s" \
+    while True:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.connect((HOST, PORT))
+            sock.sendall("GET %s\n" % hostname())
+            # Receive data from the server and shut down
+            received = sock.recv(1024)
+            targetIP = int(received.strip().split()[1])
+            if(targetIP == -1): break
+        finally:
+            sock.close()
+        (from_ip, to_ip) = ("%d.0.0.0" % targetIP, "%d.255.255.255" % targetIP)
+        out  = join(TOP, "out/%s/%s-%s" % (now, from_ip, to_ip))
+        print(out)
+        scan = join(TOP, "dist/build/scan/scan")
+        log("BEG %s - %s" % (from_ip, to_ip))
+        os.system("%s %s %s %s 2>&1 >> %s" \
                 % (scan, opts.nc, from_ip, to_ip, out))
-    log("END %s - %s" % (from_ip, to_ip))
+        log("END %s - %s" % (from_ip, to_ip))
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.connect((HOST, PORT))
+            sock.sendall("DONE %s (%d)\n" % (hostname(), targetIP))
+            # Receive data from the server and shut down
+            received = sock.recv(1024)
+        finally:
+            sock.close()
     
 if __name__ == '__main__':
     parser = optparse.OptionParser(__doc__.strip() if __doc__ else "")
@@ -117,6 +135,12 @@ if __name__ == '__main__':
     parser.add_option("-t", "--testing",
                       help="testing", action="store_true",
                       dest="testing", default=False)
+    parser.add_option("-H", "--host",
+                      help="server_address",
+                      dest="server_address", default="hydralisk.cs.washington.edu")
+    parser.add_option("-p", "--port",
+                      help="server_port", type="int",
+                      dest="server_port", default=9999)
     (opts, args) = parser.parse_args()
     
     if opts.check_ip:
