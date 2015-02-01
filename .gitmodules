@@ -1,0 +1,3 @@
+[submodule "masscan"]
+	path = masscan
+	url = git@github.com:robertdavidgraham/masscan.git
