@@ -1,0 +1,19 @@
+name:                   scan
+version:                0.0.0
+build-type:             Simple
+cabal-version:          >= 1.2
+
+executable              scan
+    main-is:            scan.hs
+    build-depends:      base
+                      , network
+                      , HTTP
+                      , split
+                      , text
+                      , MissingH
+                      , old-locale
+                      , time
+                      , iproute
+                      , regex-posix
+
+    ghc-options:       -O2
